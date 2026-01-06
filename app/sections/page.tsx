@@ -20,7 +20,9 @@ export default function SectionsPage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const allSections = useMemo(() => {
-        return [...sections, ...customSections];
+        const customSlugs = new Set(customSections.map(s => s.slug));
+        const uniqueStatic = sections.filter(s => !customSlugs.has(s.slug));
+        return [...uniqueStatic, ...customSections];
     }, [customSections]);
 
     const filteredSections = useMemo(() => {
@@ -36,6 +38,11 @@ export default function SectionsPage() {
         setSelectedNiches((prev) =>
             prev.includes(niche) ? prev.filter((n) => n !== niche) : [...prev, niche]
         );
+    };
+
+    const clearFilters = () => {
+        setSelectedNiches([]);
+        setSearchQuery("");
     };
 
     if (!mounted) {
@@ -120,12 +127,14 @@ export default function SectionsPage() {
                     </div>
 
                     {/* Results Summary */}
-                    <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
-                        <p>Showing {filteredSections.length} sections</p>
-                        {selectedNiches.length > 0 && (
+                    <div className="mb-6 flex items-center gap-4 text-sm text-muted-foreground">
+                        <p>
+                            Showing {filteredSections.length} {filteredSections.length === 1 ? 'section' : 'sections'}
+                        </p>
+                        {(selectedNiches.length > 0 || searchQuery) && (
                             <button
-                                onClick={() => setSelectedNiches([])}
-                                className="flex items-center gap-1 text-primary hover:underline"
+                                onClick={clearFilters}
+                                className="flex items-center gap-1 text-primary hover:underline font-medium"
                             >
                                 Clear all <X className="h-3 w-3" />
                             </button>

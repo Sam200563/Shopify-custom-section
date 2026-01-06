@@ -15,11 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface AuthModalProps {
-
     children?: React.ReactNode;
     defaultTab?: "login" | "signup";
 }
@@ -38,48 +36,69 @@ export function AuthModal({ children, defaultTab = "login" }: AuthModalProps) {
     const [signupEmail, setSignupEmail] = useState("");
     const [signupPassword, setSignupPassword] = useState("");
 
-    const { session } = useAuth();
-
+    const { refreshUser } = useAuth();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email: loginEmail,
-            password: loginPassword,
-        });
+        try {
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+            });
 
-        if (error) {
-            toast.error(error.message);
-        } else {
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Login failed");
+            }
+
             toast.success("Logged in successfully!");
+            await refreshUser();
             setIsOpen(false);
+            setLoginEmail("");
+            setLoginPassword("");
+        } catch (error: any) {
+            toast.error(error.message || "Invalid email or password");
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        const { data, error } = await supabase.auth.signUp({
-            email: signupEmail,
-            password: signupPassword,
-            options: {
-                data: {
+        try {
+            const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: signupEmail,
+                    password: signupPassword,
                     full_name: signupName,
-                },
-            },
-        });
+                }),
+            });
 
-        if (error) {
-            toast.error(error.message);
-        } else {
-            toast.success("Account created! Check your email to verify.");
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to create account");
+            }
+
+            toast.success("Account created and logged in!");
+            await refreshUser();
             setIsOpen(false);
+            setSignupName("");
+            setSignupEmail("");
+            setSignupPassword("");
+        } catch (error: any) {
+            toast.error(error.message || "Failed to create account");
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     useEffect(() => {

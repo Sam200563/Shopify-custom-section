@@ -48,7 +48,7 @@ export default function ProfilePage() {
                             <h1 className="text-2xl font-bold">{user.user_metadata?.full_name || "User"}</h1>
                             <p className="text-muted-foreground">{user.email}</p>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Member since {new Date(user.created_at).toLocaleDateString()}
+                                Member since {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Recently'}
                             </p>
                         </div>
                         <div className="flex flex-col gap-2">
@@ -58,13 +58,22 @@ export default function ProfilePage() {
                 </Card>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Uploaded Sections</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{mySections.length}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => router.push("/profile/bookmarks")}>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Saved Sections</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                            <div className="text-2xl font-bold">View</div>
+                            <Button size="sm" variant="ghost">Go →</Button>
                         </CardContent>
                     </Card>
                 </div>

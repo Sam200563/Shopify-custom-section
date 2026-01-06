@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useSectionStore } from "@/lib/section-store";
 import { toast } from "sonner";
 import { DynamicPreview } from "@/components/shared/DynamicPreview";
+import { ResizableSplitLayout } from "@/components/shared/ResizableSplitLayout";
 import { Niche } from "@/data/sections";
-import { Loader2, ArrowLeft, UploadCloud } from "lucide-react";
+import { Loader2, ArrowLeft, UploadCloud, Monitor, Tablet, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const availableNiches: Niche[] = [
     "Beauty", "Electronics", "Dropshipping", "Fashion", "Fitness",
@@ -26,6 +28,7 @@ export default function UploadPage() {
     const { addSection } = useSectionStore();
     const { user, isLoading: authLoading } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
+    const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
 
     // Form State
     const [name, setName] = useState("");
@@ -88,19 +91,21 @@ export default function UploadPage() {
         try {
             // Upload Image if selected
             if (previewFile) {
-                const fileExt = previewFile.name.split('.').pop();
-                const fileName = `${slug}-${Date.now()}.${fileExt}`;
-                const { data, error } = await supabase.storage
-                    .from('section-previews')
-                    .upload(fileName, previewFile);
+                const formData = new FormData();
+                formData.append('file', previewFile);
 
-                if (error) throw error;
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('section-previews')
-                    .getPublicUrl(fileName);
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(errorData.error || 'Failed to upload image');
+                }
 
-                previewUrl = publicUrl;
+                const uploadData = await uploadResponse.json();
+                previewUrl = uploadData.url;
             }
 
             await addSection({
@@ -111,7 +116,7 @@ export default function UploadPage() {
                 niches: niches as any,
                 preview: previewUrl,
                 code: code,
-                author_name: user?.user_metadata?.full_name // Explicitly pass it
+                author_name: user?.user_metadata?.full_name || user?.name || undefined
             });
 
             toast.success("Section created successfully!");
@@ -137,137 +142,182 @@ export default function UploadPage() {
                     <div className="w-24"></div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start h-full">
-                    {/* Left: Input Form */}
-                    <div className="space-y-6">
-                        <Card className="border-0 shadow-md">
-                            <CardHeader>
-                                <CardTitle>Section Details</CardTitle>
-                                <CardDescription>Define your section metadata.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Section Name</Label>
-                                        <Input
-                                            id="name"
-                                            placeholder="e.g. Hero Video"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="category">Category</Label>
-                                        <Input
-                                            id="category"
-                                            placeholder="e.g. Hero"
-                                            value={category}
-                                            onChange={(e) => setCategory(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="preview">Preview Image</Label>
-                                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition cursor-pointer relative">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
-                                            onChange={(e) => setPreviewFile(e.target.files?.[0] || null)}
-                                        />
-                                        <div className="flex flex-col items-center gap-2">
-                                            <UploadCloud className="w-8 h-8 text-gray-400" />
-                                            <span className="text-sm text-gray-600">
-                                                {previewFile ? previewFile.name : "Click to upload thumbnail"}
-                                            </span>
+                <ResizableSplitLayout
+                    initialLeftWidth={50}
+                    minLeftWidth={30}
+                    maxLeftWidth={70}
+                    leftSide={
+                        /* Left: Input Form */
+                        <div className="space-y-6 pr-4 overflow-auto pb-8">
+                            <Card className="border-0 shadow-md">
+                                <CardHeader>
+                                    <CardTitle>Section Details</CardTitle>
+                                    <CardDescription>Define your section metadata.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="name">Section Name</Label>
+                                            <Input
+                                                id="name"
+                                                placeholder="e.g. Hero Video"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="category">Category</Label>
+                                            <Input
+                                                id="category"
+                                                placeholder="e.g. Hero"
+                                                value={category}
+                                                onChange={(e) => setCategory(e.target.value)}
+                                            />
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="space-y-2">
-                                    <Label>Niches (Select multiple)</Label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {availableNiches.map((niche) => (
-                                            <button
-                                                key={niche}
-                                                type="button"
-                                                onClick={() => setNiches(prev =>
-                                                    prev.includes(niche) ? prev.filter(n => n !== niche) : [...prev, niche]
-                                                )}
-                                                className={`rounded-full px-3 py-1 text-xs font-medium transition-all border ${niches.includes(niche)
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "bg-background text-muted-foreground border-zinc-200 hover:border-zinc-300"
-                                                    }`}
-                                            >
-                                                {niche}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        placeholder="Brief description..."
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        className="h-20"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-md flex-1">
-                            <CardHeader className="pb-3">
-                                <CardTitle>Liquid Code</CardTitle>
-                                <CardDescription>Paste your full .liquid file content here. Includes Schema, CSS, and JS.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="space-y-2">
+                                        <Label htmlFor="preview">Preview Image</Label>
+                                        <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition cursor-pointer relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                onChange={(e) => setPreviewFile(e.target.files?.[0] || null)}
+                                            />
+                                            <div className="flex flex-col items-center gap-2">
+                                                <UploadCloud className="w-8 h-8 text-gray-400" />
+                                                <span className="text-sm text-gray-600">
+                                                    {previewFile ? previewFile.name : "Click to upload thumbnail"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Niches (Select multiple)</Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {availableNiches.map((niche) => (
+                                                <button
+                                                    key={niche}
+                                                    type="button"
+                                                    onClick={() => setNiches(prev =>
+                                                        prev.includes(niche) ? prev.filter(n => n !== niche) : [...prev, niche]
+                                                    )}
+                                                    className={`rounded-full px-3 py-1 text-xs font-medium transition-all border ${niches.includes(niche)
+                                                        ? "bg-primary text-primary-foreground border-primary"
+                                                        : "bg-background text-muted-foreground border-zinc-200 hover:border-zinc-300"
+                                                        }`}
+                                                >
+                                                    {niche}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="description">Description</Label>
                                         <Textarea
-                                            id="code"
-                                            className="font-mono text-xs h-[500px] leading-relaxed bg-muted/50 border-zinc-200 dark:border-zinc-800 resize-none"
-                                            value={code}
-                                            onChange={(e) => setCode(e.target.value)}
-                                            spellCheck={false}
+                                            id="description"
+                                            placeholder="Brief description..."
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            className="h-20"
                                         />
                                     </div>
+                                </CardContent>
+                            </Card>
 
-                                    <Button type="submit" size="lg" className="w-full bg-black hover:bg-zinc-800" disabled={isLoading}>
-                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Create & Save Section
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </div>
+                            <Card className="border-0 shadow-md">
+                                <CardHeader className="pb-3">
+                                    <CardTitle>Liquid Code</CardTitle>
+                                    <CardDescription>Paste your full .liquid file content here. Includes Schema, CSS, and JS.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Textarea
+                                                id="code"
+                                                className="font-mono text-xs h-[500px] leading-relaxed bg-muted/50 border-zinc-200 dark:border-zinc-800 resize-none"
+                                                value={code}
+                                                onChange={(e) => setCode(e.target.value)}
+                                                spellCheck={false}
+                                            />
+                                        </div>
 
-                    {/* Right: Live Preview */}
-                    <div className="lg:sticky lg:top-24 space-y-4">
-                        <div className="flex items-center justify-between px-1">
-                            <h3 className="font-semibold text-gray-900">Live Preview</h3>
-                            <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">Autosyncing</span>
+                                        <Button type="submit" size="lg" className="w-full bg-black hover:bg-zinc-800 text-white" disabled={isLoading}>
+                                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Create & Save Section
+                                        </Button>
+                                    </form>
+                                </CardContent>
+                            </Card>
                         </div>
+                    }
+                    rightSide={
+                        /* Right: Live Preview */
+                        <div className="lg:sticky lg:top-24 space-y-4 pl-4 overflow-auto pb-8 flex flex-col items-center">
+                            <div className="flex items-center justify-between w-full px-1">
+                                <h3 className="font-semibold text-gray-900">Live Preview</h3>
+                                <div className="flex items-center gap-2 rounded-lg border bg-white p-1 shadow-sm">
+                                    <button
+                                        onClick={() => setViewport("desktop")}
+                                        className={cn("rounded p-1", viewport === "desktop" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
+                                    >
+                                        <Monitor className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewport("tablet")}
+                                        className={cn("rounded p-1", viewport === "tablet" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
+                                    >
+                                        <Tablet className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewport("mobile")}
+                                        className={cn("rounded p-1", viewport === "mobile" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
+                                    >
+                                        <Smartphone className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
 
-                        <div className="aspect-[16/10] w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                            {/* If user uploaded an image and no code changes, we could show it, but dynamic preview is for code */}
-                            <DynamicPreview code={code} className="w-full h-full" />
-                        </div>
+                            <div className="w-full flex justify-center py-2">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    {viewport} View — {viewport === "desktop" ? "Full Width" : viewport === "tablet" ? "768px" : "375px"}
+                                </span>
+                            </div>
 
-                        <div className="bg-blue-50 text-blue-800 text-sm p-4 rounded-lg border border-blue-100 flex gap-3 items-start">
-                            <div className="mt-1 shrink-0">ℹ️</div>
-                            <p>
-                                This preview mocks Shopify Liquid logic.
-                                Settings defined in <code>{'{% schema %}'}</code> are automatically populated with their
-                                <code>default</code> values.
-                                Loops like <code>{'{% for block in section.blocks %}'}</code> are simulated.
-                            </p>
+                            <motion.div
+                                layout
+                                animate={{
+                                    width: viewport === "desktop" ? "100%" : viewport === "tablet" ? "768px" : "375px",
+                                    maxWidth: "100%",
+                                }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="aspect-[16/10] bg-white rounded-2xl shadow-2xl border-8 border-gray-800 overflow-hidden relative"
+                            >
+                                <div className="absolute top-0 left-0 right-0 h-4 bg-gray-800 flex items-center gap-1 px-3 z-30">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500/50" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500/50" />
+                                </div>
+                                <div className="pt-4 h-full w-full">
+                                    <DynamicPreview code={code} className="w-full h-full" />
+                                </div>
+                            </motion.div>
+
+                            <div className="bg-blue-50 text-blue-800 text-sm p-4 rounded-lg border border-blue-100 flex gap-3 items-start">
+                                <div className="mt-1 shrink-0">ℹ️</div>
+                                <p>
+                                    This preview mocks Shopify Liquid logic.
+                                    Settings defined in <code>{'{% schema %}'}</code> are automatically populated with their
+                                    <code>default</code> values.
+                                    Loops like <code>{'{% for block in section.blocks %}'}</code> are simulated.
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    }
+                />
             </div>
         </div>
     );

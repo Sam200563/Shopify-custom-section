@@ -1,22 +1,30 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+
+interface User {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    user_metadata?: {
+        full_name?: string;
+    };
+    created_at?: string;
+}
 
 interface AuthContextType {
     user: User | null;
-    session: Session | null;
     isLoading: boolean;
     signOut: () => Promise<void>;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
-    session: null,
     isLoading: true,
     signOut: async () => { },
+    refreshUser: async () => { },
 });
 
 export function useAuth() {
@@ -25,54 +33,44 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    useEffect(() => {
-        // Check active session
-        supabase.auth.getSession().then(({ data, error }) => {
-            if (error) {
-                console.error("Auth check failed:", error);
-                setSession(null);
+    const fetchUser = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch("/api/auth/me");
+            const data = await response.json();
+            if (data.user) {
+                setUser({
+                    ...data.user,
+                    user_metadata: {
+                        full_name: data.user.name
+                    }
+                });
+            } else {
                 setUser(null);
-            } else if (data) {
-                setSession(data.session);
-                setUser(data.session?.user ?? null);
             }
-            setIsLoading(false);
-        }).catch(err => {
-            console.error("Auth Exception:", err);
-            setIsLoading(false);
-        });
+        } catch (error) {
+            console.error("Failed to fetch user:", error);
+            setUser(null);
+        }
+        setIsLoading(false);
+    };
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                if (localStorage.getItem("demo_guest")) return; // Ignore supabase updates in guest mode
-
-                setSession(session);
-                setUser(session?.user ?? null);
-                setIsLoading(false);
-                if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-                    router.refresh();
-                }
-            }
-        );
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [router]);
+    useEffect(() => {
+        fetchUser();
+    }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        await fetch("/api/auth/logout", { method: "POST" });
         setUser(null);
-        setSession(null);
         router.refresh();
+        router.push("/");
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+        <AuthContext.Provider value={{ user, isLoading, signOut, refreshUser: fetchUser }}>
             {children}
         </AuthContext.Provider>
     );
