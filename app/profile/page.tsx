@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Heart, Bookmark } from "lucide-react";
 
 export default function ProfilePage() {
     const { user, isLoading: authLoading, signOut } = useAuth();
@@ -33,6 +34,8 @@ export default function ProfilePage() {
     if (!user) return null;
 
     const mySections = customSections.filter(s => s.user_id === user.id);
+    const totalLikes = mySections.reduce((sum, s) => sum + (s.likes_count || 0), 0);
+    const totalSaves = mySections.reduce((sum, s) => sum + (s.saves_count || 0), 0);
 
     return (
         <div className="min-h-screen bg-muted/20 pt-24 pb-12 px-4">
@@ -76,6 +79,15 @@ export default function ProfilePage() {
                             <Button size="sm" variant="ghost">Go →</Button>
                         </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Likes Received</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                            <div className="text-2xl font-bold">{totalLikes}</div>
+                            <Heart className="h-5 w-5 text-red-500 fill-current" />
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Sections List */}
@@ -106,7 +118,19 @@ export default function ProfilePage() {
                                     </div>
                                     <CardContent className="p-4">
                                         <h3 className="font-semibold truncate">{section.name}</h3>
-                                        <p className="text-xs text-muted-foreground mb-2 truncate">{section.category}</p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p className="text-xs text-muted-foreground truncate">{section.category}</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-500">
+                                                    <Heart className="h-3 w-3 text-red-500" />
+                                                    <span>{section.likes_count || 0}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-500">
+                                                    <Bookmark className="h-3 w-3 text-zinc-400" />
+                                                    <span>{section.saves_count || 0}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div className="flex justify-between items-center mt-4">
                                             <Link href={`/upload/${section.slug}`}>
                                                 <Button variant="outline" size="sm" className="mr-2">Edit</Button>

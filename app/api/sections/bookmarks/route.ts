@@ -28,6 +28,8 @@ export async function GET() {
             ...section,
             _id: section._id.toString(),
             user_id: section.user_id?.toString(),
+            name: section.title,
+            preview: section.preview_url,
             likes_count: (section.likes || []).length,
             saves_count: (section.saved_by || []).length,
             is_liked: (section.likes || []).includes(userId),
