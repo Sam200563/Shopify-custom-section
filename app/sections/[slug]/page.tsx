@@ -13,6 +13,7 @@ import { useSectionStore } from "@/lib/section-store";
 import { DynamicPreview } from "@/components/shared/DynamicPreview";
 import { ResizableSplitLayout } from "@/components/shared/ResizableSplitLayout";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useSectionInteraction } from "@/hooks/use-section-interaction";
 
 export default function SectionDetailPage() {
     const { slug } = useParams();
@@ -22,12 +23,20 @@ export default function SectionDetailPage() {
     const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
     const [isCopied, setIsCopied] = useState(false);
 
-    // Interaction state
-    const [likesCount, setLikesCount] = useState(0);
-    const [savesCount, setSavesCount] = useState(0);
-    const [isLiked, setIsLiked] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-    const [isInteracting, setIsInteracting] = useState(false);
+    // Interaction state managed by hook
+    const {
+        likesCount,
+        savesCount,
+        isLiked,
+        isSaved,
+        isInteracting,
+        handleLike,
+        handleSave,
+        setLikesCount,
+        setSavesCount,
+        setIsLiked,
+        setIsSaved
+    } = useSectionInteraction({ slug: slug as string });
 
     const section = useMemo(() => {
         const staticSection = sections.find((s) => s.slug === slug);
@@ -53,7 +62,7 @@ export default function SectionDetailPage() {
             }
         };
         if (slug) fetchDetails();
-    }, [slug, user]);
+    }, [slug, user, setLikesCount, setSavesCount, setIsLiked, setIsSaved]);
 
     if (!section) {
         if (!mounted) {
@@ -78,51 +87,6 @@ export default function SectionDetailPage() {
         setIsCopied(true);
         toast.success("Code copied successfully!");
         setTimeout(() => setIsCopied(false), 2000);
-    };
-
-    const handleLike = async () => {
-        if (!user) {
-            toast.error("Please login to like sections");
-            return;
-        }
-        setIsInteracting(true);
-        try {
-            const res = await fetch(`/api/sections/${slug}/like`, { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                setIsLiked(data.liked);
-                setLikesCount(data.likes_count);
-            }
-        } catch (err) {
-            toast.error("Failed to update like");
-        } finally {
-            setIsInteracting(false);
-        }
-    };
-
-    const handleSave = async () => {
-        if (!user) {
-            toast.error("Please login to save sections");
-            return;
-        }
-        setIsInteracting(true);
-        try {
-            const res = await fetch(`/api/sections/${slug}/bookmark`, { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                setIsSaved(data.bookmarked);
-                setSavesCount(data.saves_count);
-                if (data.bookmarked) {
-                    toast.success("Added to bookmarks");
-                } else {
-                    toast.success("Removed from bookmarks");
-                }
-            }
-        } catch (err) {
-            toast.error("Failed to update save status");
-        } finally {
-            setIsInteracting(false);
-        }
     };
 
     return (
@@ -153,12 +117,12 @@ export default function SectionDetailPage() {
 
                             <div className="flex items-center gap-4">
                                 {/* Interaction Buttons */}
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 ">
                                     <button
                                         onClick={handleLike}
                                         disabled={isInteracting}
                                         className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border cursor-pointer",
                                             isLiked
                                                 ? "bg-red-50 text-red-600 border-red-200"
                                                 : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
@@ -171,7 +135,7 @@ export default function SectionDetailPage() {
                                         onClick={handleSave}
                                         disabled={isInteracting}
                                         className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border cursor-pointer",
                                             isSaved
                                                 ? "bg-blue-50 text-blue-600 border-blue-200"
                                                 : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
@@ -185,19 +149,19 @@ export default function SectionDetailPage() {
                                 <div className="flex items-center gap-2 rounded-lg border bg-background p-1">
                                     <button
                                         onClick={() => setViewport("desktop")}
-                                        className={cn("rounded p-1.5", viewport === "desktop" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
+                                        className={cn("rounded p-1.5 cursor-pointer", viewport === "desktop" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
                                     >
                                         <Monitor className="h-4 w-4" />
                                     </button>
                                     <button
                                         onClick={() => setViewport("tablet")}
-                                        className={cn("rounded p-1.5", viewport === "tablet" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
+                                        className={cn("rounded p-1.5 cursor-pointer", viewport === "tablet" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
                                     >
                                         <Tablet className="h-4 w-4" />
                                     </button>
                                     <button
                                         onClick={() => setViewport("mobile")}
-                                        className={cn("rounded p-1.5", viewport === "mobile" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
+                                        className={cn("rounded p-1.5 cursor-pointer", viewport === "mobile" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50")}
                                     >
                                         <Smartphone className="h-4 w-4" />
                                     </button>
