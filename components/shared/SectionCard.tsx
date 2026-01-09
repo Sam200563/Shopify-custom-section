@@ -131,8 +131,10 @@ export const SectionCard = ({ section }: SectionCardProps) => {
                                 onClick={handleLike}
                                 disabled={isInteracting}
                                 className={cn(
-                                    "h-10 w-10 flex items-center justify-center rounded-full transition-all shadow-lg",
-                                    isLiked ? "bg-red-500 text-white" : "bg-white/10 text-white hover:bg-red-500"
+                                    "h-10 w-10 flex items-center justify-center rounded-full transition-all shadow-lg border",
+                                    isLiked
+                                        ? "bg-red-500 border-red-500 text-white"
+                                        : "bg-transparent border-white/30 text-white hover:bg-red-500 hover:border-red-500"
                                 )}
                             >
                                 <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
@@ -141,8 +143,10 @@ export const SectionCard = ({ section }: SectionCardProps) => {
                                 onClick={handleSave}
                                 disabled={isInteracting}
                                 className={cn(
-                                    "h-10 w-10 flex items-center justify-center rounded-full transition-all shadow-lg",
-                                    isSaved ? "bg-zinc-800 text-white" : "bg-white/10 text-white hover:bg-zinc-800"
+                                    "h-10 w-10 flex items-center justify-center rounded-full transition-all shadow-lg border",
+                                    isSaved
+                                        ? "bg-white border-white text-black"
+                                        : "bg-transparent border-white/30 text-white hover:bg-white hover:text-black"
                                 )}
                             >
                                 <Bookmark className={cn("h-5 w-5", isSaved && "fill-current")} />
