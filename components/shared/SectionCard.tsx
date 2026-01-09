@@ -181,7 +181,7 @@ export const SectionCard = ({ section }: SectionCardProps) => {
                             <span className="text-[10px] font-bold">{likesCount}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <Bookmark className={cn("h-4 w-4", isSaved ? "text-white fill-current" : "text-white fill-current")} />
+                            <Bookmark className={cn("h-4 w-4", isSaved ? "text-white fill-current" : "text-white")} />
                             <span className="text-[10px] font-bold text-white">{savesCount}</span>
                         </div>
                     </div>
