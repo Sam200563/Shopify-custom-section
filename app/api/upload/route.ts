@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
         const imageUrl = `/uploads/${fileName}`;
 
         return NextResponse.json({ url: imageUrl });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Upload error:", error);
         return NextResponse.json(
-            { error: "Failed to upload image" },
+            { error: `Failed to upload image: ${error.message || error}` },
             { status: 500 }
         );
     }

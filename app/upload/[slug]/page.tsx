@@ -119,6 +119,13 @@ export default function EditSectionPage({ params }: { params: Promise<{ slug: st
         try {
             // 1. Upload Preview Image if a new file is selected
             if (previewFile) {
+                // Check 5MB limit
+                if (previewFile.size > 5 * 1024 * 1024) {
+                    toast.error("Image size too large (max 5MB)");
+                    setIsLoading(false);
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('file', previewFile);
 
