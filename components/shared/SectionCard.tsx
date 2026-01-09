@@ -176,9 +176,9 @@ export const SectionCard = ({ section }: SectionCardProps) => {
                         ))}
                     </div>
                     <div className="flex items-center gap-4 text-zinc-400">
-                        <div className="flex items-center gap-1.5 grayscale group-hover:grayscale-0 transition-all">
-                            <Heart className={cn("h-4 w-4", isLiked ? "text-red-500 fill-current" : "text-red-500")} />
-                            <span className="text-[10px] font-bold">{likesCount}</span>
+                        <div className="flex items-center gap-1.5 transition-all">
+                            <Heart className={cn("h-4 w-4", isLiked ? "text-red-500 fill-current" : "text-zinc-400 group-hover:text-red-500")} />
+                            <span className={cn("text-[10px] font-bold", isLiked && "text-red-500")}>{likesCount}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Bookmark className={cn("h-4 w-4", isSaved ? "text-white fill-current" : "text-white")} />
