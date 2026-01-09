@@ -3,11 +3,12 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Copy, Heart, Bookmark } from "lucide-react";
+import { Copy, Heart, Bookmark, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { Section } from "@/data/sections";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
+import { useSectionInteraction } from "@/hooks/use-section-interaction";
 
 interface SectionCardProps {
     section: Section & {
@@ -15,6 +16,7 @@ interface SectionCardProps {
         saves_count?: number;
         is_liked?: boolean;
         is_saved?: boolean;
+        user_id?: string;
     };
 }
 
@@ -31,13 +33,28 @@ export const SectionCard = ({ section }: SectionCardProps) => {
         saves_count: initialSavesCount = 0,
         is_liked: initialIsLiked = false,
         is_saved: initialIsSaved = false,
+        user_id,
     } = section;
 
-    const [likesCount, setLikesCount] = React.useState(initialLikesCount);
-    const [savesCount, setSavesCount] = React.useState(initialSavesCount);
-    const [isLiked, setIsLiked] = React.useState(initialIsLiked);
-    const [isSaved, setIsSaved] = React.useState(initialIsSaved);
-    const [isInteracting, setIsInteracting] = React.useState(false);
+    const {
+        likesCount,
+        savesCount,
+        isLiked,
+        isSaved,
+        isInteracting,
+        handleLike,
+        handleSave
+    } = useSectionInteraction({
+        slug,
+        initialData: {
+            likesCount: initialLikesCount,
+            savesCount: initialSavesCount,
+            isLiked: initialIsLiked,
+            isSaved: initialIsSaved
+        }
+    });
+
+    const isOwner = user && user_id && user.id === user_id;
 
     const handleCopy = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -47,58 +64,7 @@ export const SectionCard = ({ section }: SectionCardProps) => {
         toast.success("Code copied to clipboard!");
     };
 
-    const handleLike = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!user) {
-            toast.error("Please login to like sections");
-            return;
-        }
-        if (isInteracting) return;
 
-        setIsInteracting(true);
-        try {
-            const res = await fetch(`/api/sections/${slug}/like`, { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                setIsLiked(data.liked);
-                setLikesCount(data.likes_count);
-            }
-        } catch (err) {
-            toast.error("Failed to update like");
-        } finally {
-            setIsInteracting(false);
-        }
-    };
-
-    const handleSave = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!user) {
-            toast.error("Please login to save sections");
-            return;
-        }
-        if (isInteracting) return;
-
-        setIsInteracting(true);
-        try {
-            const res = await fetch(`/api/sections/${slug}/bookmark`, { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                setIsSaved(data.bookmarked);
-                setSavesCount(data.saves_count);
-                if (data.bookmarked) {
-                    toast.success("Added to bookmarks");
-                } else {
-                    toast.success("Removed from bookmarks");
-                }
-            }
-        } catch (err) {
-            toast.error("Failed to update save status");
-        } finally {
-            setIsInteracting(false);
-        }
-    };
 
     return (
         <motion.div
@@ -127,6 +93,15 @@ export const SectionCard = ({ section }: SectionCardProps) => {
 
                         {/* Right Vertical Actions */}
                         <div className="absolute top-4 right-4 flex flex-col gap-3 transform translate-x-4 group-hover:translate-x-0 transition-transform duration-300 z-[40] pointer-events-auto">
+                            {isOwner && (
+                                <Link
+                                    href={`/upload/${slug}`}
+                                    className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-blue-600 transition-all shadow-lg"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <Edit className="h-5 w-5" />
+                                </Link>
+                            )}
                             <button
                                 onClick={handleLike}
                                 disabled={isInteracting}

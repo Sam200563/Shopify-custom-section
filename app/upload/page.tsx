@@ -135,7 +135,7 @@ export default function UploadPage() {
         <div className="min-h-screen bg-muted/20 pt-24 pb-12 px-4">
             <div className="container mx-auto max-w-[1600px]">
                 <div className="flex items-center justify-between mb-8">
-                    <Link href="/sections" className="inline-flex items-center text-sm text-gray-500 hover:text-black">
+                    <Link href="/sections" className="inline-flex items-center text-sm text-gray-500 hover:text-black hover:bg-white p-2 rounded-full transition-all duration-300 ease-in-out">
                         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Library
                     </Link>
                     <h1 className="text-2xl font-bold">Upload Custom Section</h1>
